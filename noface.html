@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+
+        <!-- Babylon.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://preview.babylonjs.com/ammo.js"></script>
+        <script src="https://preview.babylonjs.com/cannon.js"></script>
+        <script src="https://preview.babylonjs.com/Oimo.js"></script>
+        <script src="https://preview.babylonjs.com/earcut.min.js"></script>
+        <script src="https://preview.babylonjs.com/babylon.js"></script>
+        <script src="https://preview.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://preview.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://preview.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://preview.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://preview.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+        <style>
+            html, body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+        </style>
+    </head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    <script>
+        var canvas = document.getElementById("renderCanvas");
+
+        var startRenderLoop = function (engine, canvas) {
+            engine.runRenderLoop(function () {
+                if (sceneToRender && sceneToRender.activeCamera) {
+                    sceneToRender.render();
+                }
+            });
+        }
+
+        var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+        BABYLON.DefaultLoadingScreen.prototype.displayLoadingUI = function () {
+            if (document.getElementById("customLoadingScreenDiv")) {
+                // Do not add a loading screen if there is already one
+                document.getElementById("customLoadingScreenDiv").style.display = "initial";
+                return;
+            }
+            this._loadingDiv = document.createElement("div");
+            this._loadingDiv.id = "customLoadingScreenDiv";
+            this._loadingDiv.innerHTML = "";
+            var customLoadingScreenCss = document.createElement('style');
+            customLoadingScreenCss.type = 'text/css';
+            customLoadingScreenCss.innerHTML = `
+            #customLoadingScreenDiv{
+                background-image:url('https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/sonA.gif');
+                background-position:center;
+                background-color: #000000;
+                color: white;
+                font-size:30px;
+                text-align:center;
+            }
+            `;
+            document.getElementsByTagName('head')[0].appendChild(customLoadingScreenCss);
+            this._resizeLoadingUI();
+            window.addEventListener("resize", this._resizeLoadingUI);
+            document.body.appendChild(this._loadingDiv);
+        };
+        
+        BABYLON.DefaultLoadingScreen.prototype.hideLoadingUI = function(){
+            document.getElementById("customLoadingScreenDiv").style.display = "none";
+            console.log("scene is now loaded");
+        }
+        
+        var delayCreateScene = function () {
+            
+            engine.displayLoadingUI();
+            var scene = new BABYLON.Scene(engine);
+        
+            
+               //environment light
+            var env512 = BABYLON.CubeTexture.CreateFromPrefilteredData("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/ghibli.env", scene);
+            env512.name = "env512";
+            env512.gammaSpace = false;
+            scene.environmentTexture = env512;
+            scene.environmentTexture.setReflectionTextureMatrix(BABYLON.Matrix.RotationY(207));
+            var envRotation = Math.PI;
+        
+            // Async loading list
+            var promises = [];
+        
+                // Callback when assets are loaded
+            Promise.all(promises).then(function() {
+                var colorGrading = new BABYLON.ColorGradingTexture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Lut/lut.3DL", scene);
+                scene.imageProcessingConfiguration.colorGradingTexture = colorGrading;
+                scene.imageProcessingConfiguration.colorGradingEnabled = true;   
+            });
+        
+             // This attaches the camera to the canvas;
+            scene.clearColor = new BABYLON.Color4.FromInts(60, 60, 60, 255);
+        
+            //Textures
+        
+            //on_siyah
+            var on_siyah = new BABYLON.StandardMaterial("on_siyah",scene);
+            on_siyah.emissiveColor = new BABYLON.Color3(1, 1, 1);
+        
+            //uv
+            var uv = new BABYLON.PBRMaterial("uv",scene);
+        
+            uv.metallic=0;
+            uv.roughness=1;
+            
+            uv.albedoTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/UV.png", scene);
+            uv.albedoTexture.vAng=Math.PI;
+            uv.albedoTexture.wAng=Math.PI;
+        
+            uv.lightmapTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/UV.png", scene);
+            uv.lightmapTexture.vAng=Math.PI;
+            uv.lightmapTexture.wAng=Math.PI;
+        
+            //mask
+            var mask = new BABYLON.PBRMaterial("mask",scene);
+        
+            mask.metallic=0;
+            mask.roughness=1;
+            
+            mask.albedoTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/mask.jpg", scene);
+            mask.albedoTexture.vAng=Math.PI;
+            mask.albedoTexture.wAng=Math.PI;
+        
+            mask.lightmapTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/mask.jpg", scene);
+            mask.lightmapTexture.vAng=Math.PI;
+            mask.lightmapTexture.wAng=Math.PI;
+        
+            //duvar_alt
+            var duvar_alt = new BABYLON.PBRMaterial("duvar_alt",scene);
+        
+            duvar_alt.metallic=0;
+            duvar_alt.roughness=1;
+            
+            duvar_alt.albedoTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/duvar_alt.jpg", scene);
+            duvar_alt.albedoTexture.vAng=Math.PI;
+            duvar_alt.albedoTexture.wAng=Math.PI;
+        
+            duvar_alt.lightmapTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/duvar_alt.jpg", scene);
+            duvar_alt.lightmapTexture.vAng=Math.PI;
+            duvar_alt.lightmapTexture.wAng=Math.PI;
+        
+            //duvar_ust
+            var duvar_ust = new BABYLON.PBRMaterial("duvar_ust",scene);
+        
+            duvar_ust.metallic=0;
+            duvar_ust.roughness=1;
+            
+            duvar_ust.albedoTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/duvar_ust.jpg", scene);
+            duvar_ust.albedoTexture.vAng=Math.PI;
+            duvar_ust.albedoTexture.wAng=Math.PI;
+        
+            duvar_ust.lightmapTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/duvar_ust.jpg", scene);
+            duvar_ust.lightmapTexture.vAng=Math.PI;
+            duvar_ust.lightmapTexture.wAng=Math.PI;
+        
+            //rain
+            var rain = new BABYLON.PBRMaterial("rain",scene);
+        
+            rain.metallic=0;
+            rain.roughness=1;
+            
+            rain.albedoTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/rain.png", scene);
+            rain.albedoTexture.vAng=Math.PI;
+            rain.albedoTexture.wAng=Math.PI;
+        
+            rain.opacityTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/rain.png", scene);
+            rain.opacityTexture.vAng=Math.PI;
+            rain.opacityTexture.wAng=Math.PI;
+        
+            rain.emissiveColor = new BABYLON.Color3(1, 1, 1);
+        
+            //grass
+            var grass = new BABYLON.PBRMaterial("grass",scene);
+        
+            grass.metallic=1;
+            grass.roughness=0;
+            
+            grass.albedoTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/grass.jpg", scene);
+            grass.albedoTexture.vAng=Math.PI;
+            grass.albedoTexture.wAng=Math.PI;
+        
+            grass.lightmapTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/grasslm.jpg", scene);
+            grass.lightmapTexture.vAng=Math.PI;
+            grass.lightmapTexture.wAng=Math.PI;
+        
+            //orta_cibik
+            var orta_cibik = new BABYLON.PBRMaterial("orta_cibik",scene);
+        
+            orta_cibik.metallic=0;
+            orta_cibik.roughness=1;
+            
+            orta_cibik.albedoTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/dene.jpg", scene);
+            orta_cibik.albedoTexture.vAng=Math.PI;
+            orta_cibik.albedoTexture.wAng=Math.PI;
+        
+            orta_cibik.lightmapTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/dene.jpg", scene);
+            orta_cibik.lightmapTexture.vAng=Math.PI;
+            orta_cibik.lightmapTexture.wAng=Math.PI;
+        
+            //ground
+            var ground = new BABYLON.PBRMaterial("ground",scene);
+        
+            ground.metallic=1;
+            ground.roughness=1;
+            
+            ground.albedoTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/ground.jpg", scene);
+            ground.albedoTexture.vAng=Math.PI;
+            ground.albedoTexture.wAng=Math.PI;
+        
+            ground.lightmapTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/ground.jpg", scene);
+            ground.lightmapTexture.vAng=Math.PI;
+            ground.lightmapTexture.wAng=Math.PI;
+        
+            //orta_arka
+            var orta_arka = new BABYLON.PBRMaterial("orta_arka",scene);
+        
+            orta_arka.metallic=1;
+            orta_arka.roughness=0;
+            
+            orta_arka.albedoTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/orta.jpg", scene);
+            orta_arka.albedoTexture.vAng=Math.PI;
+            orta_arka.albedoTexture.wAng=Math.PI;
+        
+            orta_arka.lightmapTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/orta.jpg", scene);
+            orta_arka.lightmapTexture.vAng=Math.PI;
+            orta_arka.lightmapTexture.wAng=Math.PI;
+        
+            //yan_tahta
+            var yan_tahta = new BABYLON.PBRMaterial("yan_tahta",scene);
+        
+            yan_tahta.metallic=1;
+            yan_tahta.roughness=0;
+            
+            yan_tahta.albedoTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/yan_tahta.jpg", scene);
+            yan_tahta.albedoTexture.vAng=Math.PI;
+            yan_tahta.albedoTexture.wAng=Math.PI;
+        
+            yan_tahta.lightmapTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/yan_tahta.jpg", scene);
+            yan_tahta.lightmapTexture.vAng=Math.PI;
+            yan_tahta.lightmapTexture.wAng=Math.PI;
+        
+            //mor_cicek
+            var mor_cicek = new BABYLON.PBRMaterial("mor_cicek",scene);
+        
+            mor_cicek.metallic=1;
+            mor_cicek.roughness=1;
+            mor_cicek.transparencyMode =1;
+            
+            mor_cicek.albedoTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/mor_cicek-min.jpg", scene);
+            mor_cicek.albedoTexture.vAng=Math.PI;
+            mor_cicek.albedoTexture.wAng=Math.PI;
+        
+            mor_cicek.lightmapTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/mor_cicek_lm.jpg", scene);
+            mor_cicek.lightmapTexture.vAng=Math.PI;
+            mor_cicek.lightmapTexture.wAng=Math.PI;
+        
+            mor_cicek.opacityTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/mor_cicek_opacity.png", scene);
+            mor_cicek.opacityTexture.vAng=Math.PI;
+            mor_cicek.opacityTexture.wAng=Math.PI;
+        
+             //pembe_cicek
+            var pembe_cicek = new BABYLON.PBRMaterial("pembe_cicek",scene);
+        
+            pembe_cicek.metallic=1;
+            pembe_cicek.roughness=1;
+            pembe_cicek.transparencyMode =1;
+            
+            pembe_cicek.albedoTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/pembe_cicek_albedo.jpg", scene);
+            pembe_cicek.albedoTexture.vAng=Math.PI;
+            pembe_cicek.albedoTexture.wAng=Math.PI;
+        
+            pembe_cicek.lightmapTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/pembe_cicek_lm.jpg", scene);
+            pembe_cicek.lightmapTexture.vAng=Math.PI;
+            pembe_cicek.lightmapTexture.wAng=Math.PI;
+        
+            pembe_cicek.opacityTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/pembe_cicek_opacity.png", scene);
+            pembe_cicek.opacityTexture.vAng=Math.PI;
+            pembe_cicek.opacityTexture.wAng=Math.PI;
+        
+                 //ivy
+            var ivy = new BABYLON.PBRMaterial("ivy",scene);
+        
+            ivy.metallic=1;
+            ivy.roughness=1;
+            ivy.transparencyMode =1;
+            
+            ivy.albedoTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/ivy.jpg", scene);
+            ivy.albedoTexture.vAng=Math.PI;
+            ivy.albedoTexture.wAng=Math.PI;
+        
+            ivy.lightmapTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/ivy_lm.jpg", scene);
+            ivy.lightmapTexture.vAng=Math.PI;
+            ivy.lightmapTexture.wAng=Math.PI;
+        
+            ivy.opacityTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/ivy_opacity.png", scene);
+            ivy.opacityTexture.vAng=Math.PI;
+            ivy.opacityTexture.wAng=Math.PI;
+            
+                //agac
+            var agac = new BABYLON.PBRMaterial("agac",scene);
+        
+            agac.metallic=1;
+            agac.roughness=1;
+            
+            agac.albedoTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/agac.png", scene);
+            agac.albedoTexture.vAng=Math.PI;
+            agac.albedoTexture.wAng=Math.PI;
+        
+            agac.lightmapTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/agac.png", scene);
+            agac.lightmapTexture.vAng=Math.PI;
+            agac.lightmapTexture.wAng=Math.PI;
+        
+                    //mashrom
+            var mashrom = new BABYLON.PBRMaterial("mashrom",scene);
+        
+            mashrom.metallic=1;
+            mashrom.roughness=1;
+            
+            mashrom.albedoTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/mahsroom.jpg", scene);
+            mashrom.albedoTexture.vAng=Math.PI;
+            mashrom.albedoTexture.wAng=Math.PI;
+        
+            mashrom.lightmapTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/mahsroom.jpg", scene);
+            mashrom.lightmapTexture.vAng=Math.PI;
+            mashrom.lightmapTexture.wAng=Math.PI;
+        
+            //body
+            var body = new BABYLON.StandardMaterial("body",scene);
+            body.diffuseColor = new BABYLON.Color3(0, 0, 0);
+            body.alpha = 0.8;
+        
+            //yaratik
+            var yaratik = new BABYLON.PBRMaterial("yaratik",scene);
+        
+            yaratik.metallic=1;
+            yaratik.roughness=1;
+            
+            yaratik.albedoTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/yaratik.jpg", scene);
+            yaratik.albedoTexture.vAng=Math.PI;
+            yaratik.albedoTexture.wAng=Math.PI;
+        
+            yaratik.lightmapTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/yaratik.jpg", scene);
+            yaratik.lightmapTexture.vAng=Math.PI;
+            yaratik.lightmapTexture.wAng=Math.PI;
+        
+            //fur
+            var fur = new BABYLON.PBRMaterial("fur",scene);
+        
+            fur.metallic=1;
+            fur.roughness=1;
+            
+            fur.albedoTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/fur.png", scene);
+            fur.albedoTexture.vAng=Math.PI;
+            fur.albedoTexture.wAng=Math.PI;
+        
+            fur.opacityTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/fur.png", scene);
+            fur.opacityTexture.vAng=Math.PI;
+            fur.opacityTexture.wAng=Math.PI;
+        
+            //ic
+            var ic = new BABYLON.PBRMaterial("ic",scene);
+        
+            ic.metallic=1;
+            ic.roughness=1;
+            
+            ic.albedoTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/ic2.png", scene);
+            ic.albedoTexture.vAng=Math.PI;
+            ic.albedoTexture.wAng=Math.PI;
+        
+            ic.opacityTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/ghibli/main/Texture/ic2.png", scene);
+            ic.opacityTexture.vAng=Math.PI;
+            ic.opacityTexture.wAng=Math.PI;
+        
+        
+            //opacity
+            var opacity = new BABYLON.PBRMaterial("opacity", scene);
+            
+            opacity.metallic=0;
+            opacity.roughness=1;
+            opacity.opacityTexture = new BABYLON.Texture("https://raw.githubusercontent.com/alidayioglu/nft3/main/opacity.png", scene);
+            
+            opacity.transparencyMode = 3;
+        
+        
+        
+            // This creates and positions a free camera (non-mesh)
+            var camera = new BABYLON.ArcRotateCamera("Camera", 3 * Math.PI / 2, -Math.PI / 2, 50, BABYLON.Vector3.Zero(), scene);
+        
+        	camera.attachControl(canvas, true);
+        
+            camera.useFramingBehavior = true; 
+            camera.upperRadiusLimit = 200;
+            camera.lowerRadiusLimit = 600;
+            camera.upperAlphaLimit = Math.PI / 1.8;
+            camera.lowerAlphaLimit = Math.PI / 2.3;
+            camera.upperBetaLimit = Math.PI / 1.9;
+            camera.lowerBetaLimit = Math.PI /2;
+        
+            var box = BABYLON.Mesh.CreateBox("box", 3.0, scene);
+            box.position = new BABYLON.Vector3(0.5, 1, 0.4);
+            box.scaling = new BABYLON.Vector3(2, 30, 10);
+            scene.getMeshByName('box').material = opacity
+        
+            camera.setTarget(box);
+              
+        
+            BABYLON.SceneLoader.ImportMesh(
+                "",
+                "https://raw.githubusercontent.com/alidayioglu/ghibli/main/Glb/",
+                "glb4.glb",
+                scene,
+                function () {          
+        scene.getMeshByName('agaclar').material = agac
+            scene.getMeshByName('body').material = body
+            scene.getMeshByName('duvar_alt').material = duvar_alt
+            scene.getMeshByName('duvar_ust').material = duvar_ust
+            scene.getMeshByName('fur').material = fur
+            scene.getMeshByName('grass').material = grass
+            scene.getMeshByName('ground').material = ground
+            scene.getMeshByName('ic').material = ic
+            scene.getMeshByName('ivy').material = ivy
+            scene.getMeshByName('mashrom').material = mashrom
+            scene.getMeshByName('mask').material = mask
+            scene.getMeshByName('mor_cicek').material = mor_cicek
+            scene.getMeshByName('on_siyah').material = on_siyah
+            scene.getMeshByName('orta_arka').material = orta_arka
+            scene.getMeshByName('orta_cibik').material = orta_cibik
+            scene.getMeshByName('pembe_cicek').material = pembe_cicek
+            scene.getMeshByName('r1').material = rain
+            scene.getMeshByName('r2').material = rain
+            scene.getMeshByName('r3').material = rain
+            scene.getMeshByName('r4').material = rain
+            scene.getMeshByName('r5').material = rain
+            scene.getMeshByName('r6').material = rain
+            scene.getMeshByName('sag_cicek').material = pembe_cicek
+            scene.getMeshByName('sag_cicek_1').material = pembe_cicek
+            scene.getMeshByName('yan_tahta').material = yan_tahta
+            scene.getMeshByName('yaratik').material = yaratik 
+                    engine.hideLoadingUI();
+                }
+            );
+        
+            return scene;
+        };
+                window.initFunction = async function() {
+                    
+                    
+                    var asyncEngineCreation = async function() {
+                        try {
+                        return createDefaultEngine();
+                        } catch(e) {
+                        console.log("the available createEngine function failed. Creating the default engine instead");
+                        return createDefaultEngine();
+                        }
+                    }
+
+                    window.engine = await asyncEngineCreation();
+        if (!engine) throw 'engine should not be null.';
+        startRenderLoop(engine, canvas);
+        window.scene = delayCreateScene();};
+        initFunction().then(() => {sceneToRender = scene                    
+        });
+
+        // Resize
+        window.addEventListener("resize", function () {
+            engine.resize();
+        });
+    </script>
+</body>
+</html>
